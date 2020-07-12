@@ -4,31 +4,12 @@
 import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 
-# Any results you write to the current directory are saved as output.
-from time import time
-from tqdm import tqdm_notebook as tqdm
 from collections import Counter
-from scipy import stats
-import json
-from numba import jit
-import copy
-import time
-import datetime
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-
 from functools import partial
 import scipy as sp
 from scipy.stats import mode
 
 
-from sklearn.model_selection import GroupKFold, KFold, train_test_split
-from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.metrics import confusion_matrix, mean_squared_error
-from sklearn.metrics.pairwise import *
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import ExtraTreesRegressor
 
 import xgboost as xgb
@@ -36,24 +17,12 @@ import lightgbm as lgb
 from catboost import CatBoostRegressor
 
 
-import keras
-from keras.losses import binary_crossentropy, categorical_crossentropy
-from keras.utils import to_categorical
-from keras.layers import Dense,Input,Flatten,concatenate,Dropout,Lambda,BatchNormalization
-from keras.layers import Activation
-from keras.models import Sequential, Model
-from keras.callbacks import Callback,EarlyStopping,ModelCheckpoint
-import keras.backend as K
-from keras.optimizers import Adam
-#from keras_radam import RAdam
-from keras import optimizers
-from keras.utils import np_utils
-
-from ngboost.ngboost import NGBoost
-from ngboost.distns import Bernoulli, Normal, LogNormal
 from ngboost.scores import MLE
 from ngboost.learners import default_tree_learner
 from ngboost import NGBRegressor
+
+from mlxtend.regressor import StackingCVRegressor, LinearRegression
+
 
 # pip install --upgrade git+https://github.com/stanfordmlgroup/ngboost.git
 
@@ -489,15 +458,6 @@ train, test, train_labels, win_code, list_of_user_activities, list_of_event_code
 reduce_train, reduce_test, categoricals = get_train_and_test(train, test)
  
 
-# from meantargetencoding import MeanTargetEncoding
-
-# me = MeanTargetEncoding('accuracy_group', 'session_title')
-
-# reduce_train['session_title'], reduce_test['session_title'] = me.encoded_features(reduce_train, reduce_test)
-
-#################################################################################
-
-
 # this list comprehension create the list of features that will be used on the input dataset X
 # all but accuracy_group, that is the label y
 all_features = [x for x in reduce_train.columns if x not in ['accuracy_group', 'installation_id']]
@@ -507,31 +467,29 @@ cat_features = ['session_title']
 X, y = reduce_train[all_features].values, reduce_train['accuracy_group'].apply(float)
 
 
-
+# Define groups for group K-fold
 groups = train_labels['installation_id']
 
 
 def make_regressor(iterations=6000, clf=None):
     
-    if clf == 'cat':
-            
+    if clf == 'cat':            
         clf = CatBoostRegressor(
-                                   loss_function='RMSE',
-                                   # eval_metric="WKappa",
-                                   task_type="CPU",
-                                   #learning_rate=0.01,
-                                   iterations=iterations,
-                                   od_type="Iter",
-                                    #depth=4,
-                                   early_stopping_rounds=500,
-                                    #l2_leaf_reg=10,
-                                    #border_count=96,
-                                   random_seed=SEED,
-                                   #use_best_model=True
-                                  )
+            loss_function='RMSE',
+            # eval_metric="WKappa",
+            task_type="CPU",
+            #learning_rate=0.01,
+            iterations=iterations,
+            od_type="Iter",
+            #depth=4,
+            early_stopping_rounds=500,
+            #l2_leaf_reg=10,
+            #border_count=96,
+            random_seed=SEED,
+            #use_best_model=True
+            )
         
-    if clf == 'xgb':
-        
+    if clf == 'xgb':        
         clf = xgb.XGBRegressor(
             n_estimators = 5000,
             max_depth = 10,
@@ -539,21 +497,21 @@ def make_regressor(iterations=6000, clf=None):
             gamma = 0.25,
             n_jobs = -1,
             #verbosity=3,
-            random_state=SEED)
+            random_state=SEED
+            )
         
-    if clf == 'lgb':
-        
+    if clf == 'lgb':        
         clf = lgb.LGBMRegressor(
             learning_rate = 0.01,
             n_estimators = 2000,
             max_depth = 15,
             #reg_alpha = 1,
             #reg_lambda = 1,
-            random_state=SEED)
+            random_state=SEED
+            )
             
         
-    if clf == 'ngb':
-        
+    if clf == 'ngb':        
         clf = NGBRegressor(
             Dist=Normal,
             Score=MLE,
@@ -563,10 +521,10 @@ def make_regressor(iterations=6000, clf=None):
             learning_rate=0.01,
             minibatch_frac=0.6,
             verbose=True,
-            verbose_eval=50)
+            verbose_eval=50
+            )
         
-    if clf == 'ext':
-        
+    if clf == 'ext':        
         clf = ExtraTreesRegressor(
             #learning_rate = 0.01,
             n_estimators = 2000,
@@ -575,25 +533,23 @@ def make_regressor(iterations=6000, clf=None):
             #reg_lambda = 1,
             random_state=SEED,
             verbose=3,
-            n_jobs=-1)
+            #n_jobs=-1
+            )
             
     return clf
 
 
-from mlxtend.regressor import StackingCVRegressor, LinearRegression
-
-
-
 def get_coef(model, X, y):
-    
+    """ Return model coefficients. """
     pr = model.predict(X)
     optR.fit(pr.reshape(-1,), y)
     return optR.coefficients()
     
+
 def make_predictions(model, coefs):
-            
+    """ Return predictions based on coefficient values. """
     predictions = model.predict(reduce_test[all_features].values)
-           
+    # Maintian oridnal structure           
     predictions[predictions <= coefs[0]] = 0
     predictions[np.where(np.logical_and(predictions > coefs[0], predictions <= coefs[1]))] = 1
     predictions[np.where(np.logical_and(predictions > coefs[1], predictions <= coefs[2]))] = 2
@@ -603,6 +559,8 @@ def make_predictions(model, coefs):
 
 
 
+
+# Define models for the first ensemble (using group k-fold)
 model1 = make_regressor(clf='cat')
 
 model2 = make_regressor(clf='xgb')
@@ -610,7 +568,6 @@ model2 = make_regressor(clf='xgb')
 model3 = make_regressor(clf='lgb')
 
 lr = LinearRegression()
-
 
 stack_one = StackingCVRegressor(regressors=[model1, model2, model3], 
                             meta_regressor=lr, 
@@ -621,24 +578,19 @@ stack_one = StackingCVRegressor(regressors=[model1, model2, model3],
 
 stack_one.fit(X, y, groups=groups)
 
+## Return ordinal predictions
 pr1 = stack_one.predict(X)
-
 optR = OptimizedRounder()
-
 coefs_one = get_coef(stack_one, X, y)
-print(coefs_one)
+#print(coefs_one)
+#one_preds = optR.predict(pr1.reshape(-1, ), coefs_one)
+#print(np.round(qwk(y, one_preds), 3))
+# lr.fit(stack_one.train_meta_features_, y)
+# p1 = lr.predict(stack_one.predict_meta_features(X))
 
 
-one_preds = optR.predict(pr1.reshape(-1, ), coefs_one)
-print(np.round(qwk(y, one_preds), 3))
 
-##
-
-lr.fit(stack_one.train_meta_features_, y)
-
-p1 = lr.predict(stack_one.predict_meta_features(X))
-########################################################
-
+# Define models for the second ensemble (using group k-fold)
 model4 = make_regressor(clf='ngb')
 
 model5 = make_regressor(clf='cat')
@@ -657,23 +609,20 @@ stack_two = StackingCVRegressor(regressors=[model4, model5, model6],
 
 stack_two.fit(X, y, groups=groups)
 
+## Return ordinal predictions
 pr2 = stack_two.predict(X)
-
 optR = OptimizedRounder()
-
 coefs_two = get_coef(stack_two, X, y)
-print(coefs_two)
+#print(coefs_two)
+#two_preds = optR.predict(pr2.reshape(-1, ), coefs_two)
+#print(np.round(qwk(y, two_preds), 3))
 
 
-two_preds = optR.predict(pr2.reshape(-1, ), coefs_two)
-print(np.round(qwk(y, two_preds), 3))
 
-###########################################################
 
+# Define models for the thrid ensemble (using group k-fold)
 model7 = make_regressor(clf='cat')
-
 model8 = make_regressor(clf='ext')
-
 model9 = make_regressor(clf='lgb')
 
 lr = LinearRegression()
@@ -688,81 +637,26 @@ stack_three = StackingCVRegressor(regressors=[model7, model8, model9],
 
 stack_three.fit(X, y, groups=groups)
 
+# Return ordinal predictions
 pr3 = stack_three.predict(X)
-
 optR = OptimizedRounder()
-
 coefs_three = get_coef(stack_three, X, y)
-print(coefs_three)
+#print(coefs_three)
+#three_preds = optR.predict(pr3.reshape(-1, ), coefs_three)
+#print(np.round(qwk(y, three_preds), 3))
 
 
-three_preds = optR.predict(pr3.reshape(-1, ), coefs_three)
-print(np.round(qwk(y, three_preds), 3))
 
-
-###########################################################
 
 # Get final preds
-
 stack1_preds = make_predictions(stack_one, coefs_one)
 stack2_preds = make_predictions(stack_two, coefs_two)
 stack3_preds = make_predictions(stack_three, coefs_three)
 
-#np.concatenate((stack1_preds, stack2_preds, stack3_preds), axis=0) #.reshape((1000,))
 
 res_df = pd.DataFrame(mode([stack1_preds, stack2_preds, stack3_preds])[0].reshape((1000,)))
 
-
-res_df.to_csv('res_df')
-
-
-#########################################
-
-import pickle
-
-model_file = "stack_one.sav"
-with open(model_file, mode='wb') as model_f:
-    pickle.dump(stack_one, model_f)
-    
-
-model_file = "stack_two.sav"
-with open(model_file, mode='wb') as model_f:
-    pickle.dump(stack_two, model_f)
-    
-
-model_file = "stack_three.sav"
-with open(model_file, mode='wb') as model_f:
-    pickle.dump(stack_three, model_f)
-
-
-with open(model_file, mode='rb') as model_f:
-    model = pickle.load(model_f)
-    result = model.predict(X)
-    coefs_one = get_coef(model, X, y)
-    one_preds = optR.predict(pr1.reshape(-1, ), coefs_one)
-    print(np.round(qwk(y, one_preds), 3))
-
-
-    print("result:",result)
-
-
-
-pr1 = stack_one.predict(X)
-
-optR = OptimizedRounder()
-
-coefs_one = get_coef(stack_one, X, y)
-print(coefs_one)
-
-
-one_preds = optR.predict(pr1.reshape(-1, ), coefs_one)
-print(np.round(qwk(y, one_preds), 3))
-
-
-
-
-
-
+res_df.to_csv('result.csv', index=False)
 
 
 
