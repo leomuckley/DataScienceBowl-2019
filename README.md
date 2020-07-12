@@ -9,7 +9,7 @@ games and improved learning outcomes.
 
 The intent of the competition is was to use the gameplay data to forecast how many attempts a child will take to pass a given
 assessment (an incorrect answer is counted as an attempt). The outcomes in this competition are grouped into 4 groups 
-(labeled accuracy_group in the data):
+(labeled  `<em>accuracy_group</em>`  in the data):
 
 3: the assessment was solved on the first attempt<br/>
 2: the assessment was solved on the second attempt<br/>
