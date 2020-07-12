@@ -16,5 +16,7 @@ assessment (an incorrect answer is counted as an attempt). The outcomes in this 
 1: the assessment was solved after 3 or more attempts<br/>
 0: the assessment was never solved<br/>
 
+<https://www.kaggle.com/c/data-science-bowl-2019>
+
 My solution involved using a regression approach to this task where the evaluation was based on kappa metric. 
 Conisdering the ordinal form of the target feature, a regression approach with optimised thresholds were implemented.
