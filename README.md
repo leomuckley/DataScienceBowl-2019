@@ -11,10 +11,10 @@ The intent of the competition is was to use the gameplay data to forecast how ma
 assessment (an incorrect answer is counted as an attempt). The outcomes in this competition are grouped into 4 groups 
 (labeled accuracy_group in the data):
 
-3: the assessment was solved on the first attempt
-2: the assessment was solved on the second attempt
-1: the assessment was solved after 3 or more attempts
-0: the assessment was never solved
+3: the assessment was solved on the first attempt<br/>
+2: the assessment was solved on the second attempt<br/>
+1: the assessment was solved after 3 or more attempts<br/>
+0: the assessment was never solved<br/>
 
 My solution involved using a regression approach to this task where the evaluation was based on kappa metric. 
 Conisdering the ordinal form of the target feature, a regression approach with optimised thresholds were implemented.
