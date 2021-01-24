@@ -1,6 +1,9 @@
 # DataScienceBowl-2019
 Python code for the Data Science Bowl 2019 competition (top 7%) hosted by Kaggle
 
+[![MIT](https://img.shields.io/github/license/leomuckley/DataScienceBowl-2019?logo=MIT)](/LICENSE)
+
+
 In this challenge, anonymous gameplay data was used, including knowledge of videos watched and games played, 
 from the <em>PBS KIDS Measure Up!</em> app, a game-based learning tool developed as a part of the CPB-PBS Ready To Learn Initiative
 with funding from the U.S. Department of Education. 
