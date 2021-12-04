@@ -1,37 +1,33 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
+## Import the relevant packages
 import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
-
+pd.set_option('display.max_columns', 1000)
 from collections import Counter
 from functools import partial
 import scipy as sp
 from scipy.stats import mode
 
-
+## Packages required for modelling
 from sklearn.ensemble import ExtraTreesRegressor
-
 import xgboost as xgb
 import lightgbm as lgb
 from catboost import CatBoostRegressor
-
-
 from ngboost.scores import MLE
 from ngboost.learners import default_tree_learner
 from ngboost import NGBRegressor
 
+## Pacakges for Stacking
 from mlxtend.regressor import StackingCVRegressor, LinearRegression
-
-
+## Install NGBoost package
 # pip install --upgrade git+https://github.com/stanfordmlgroup/ngboost.git
 
-
-pd.set_option('display.max_columns', 1000)
-
+## Param for random state/seed
 SEED = 42
 
 def read_data():
+    """ Function to read the training and test sets"""
+    
     print('Reading train.csv file....')
     train = pd.read_csv('train.csv')
     print('Training.csv file have {} rows and {} columns'.format(train.shape[0], train.shape[1]))
@@ -54,7 +50,8 @@ def read_data():
     return train, test, train_labels, specs, sample_submission
 
 def encode_title(train, test, train_labels):
-    # encode title
+    """ Feature engineering for title feature. """
+    
     train['title_event_code'] = list(map(lambda x, y: str(x) + '_' + str(y), train['title'], train['event_code']))
     test['title_event_code'] = list(map(lambda x, y: str(x) + '_' + str(y), test['title'], test['event_code']))
     all_title_event_code = list(set(train["title_event_code"].unique()).union(test["title_event_code"].unique()))
@@ -83,20 +80,21 @@ def encode_title(train, test, train_labels):
     train['timestamp'] = pd.to_datetime(train['timestamp'])
     test['timestamp'] = pd.to_datetime(test['timestamp'])
     
-    
     return train, test, train_labels, win_code, list_of_user_activities, list_of_event_code, activities_labels, assess_titles, list_of_event_id, all_title_event_code
 
-# this is the function that convert the raw data into processed features
+
 def get_data(user_sample, test_set=False):
     '''
+    This is the function that converts the raw data into processed features.
+
     The user_sample is a DataFrame from train or test where the only one 
-    installation_id is filtered
+    installation_id is filtered;
     And the test_set parameter is related with the labels processing, that is only requered
     if test_set=False
+    
     '''
     # Constants and parameters declaration
     last_activity = 0
-    
     user_activities_count = {'Clip':0, 'Activity': 0, 'Assessment': 0, 'Game':0}
     
     # new features: time spent in each activity
